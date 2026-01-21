@@ -74,7 +74,6 @@
 </head>
 <body class="p-4 md:p-8">
 
-    <!-- Background Clouds -->
     <div class="cloud w-32 h-12" style="top: 10%; animation-duration: 25s;"></div>
     <div class="cloud w-48 h-16" style="top: 25%; animation-duration: 35s; animation-delay: -5s;"></div>
     <div class="cloud w-40 h-14" style="top: 60%; animation-duration: 30s; animation-delay: -15s;"></div>
@@ -140,7 +139,7 @@
             </div>
 
             <div class="relative bg-white border-4 border-dashed border-blue-200 p-8 rounded-3xl mb-8 min-h-[220px] flex items-center justify-center">
-                <p id="problemText" class="text-2xl md:text-3xl leading-relaxed text-gray-800 font-bold"></p>
+                <p id="problemText" class="text-2xl md:text-3xl leading-relaxed text-gray-800 font-bold px-4"></p>
             </div>
 
             <div class="flex flex-col items-center gap-6">
@@ -155,8 +154,11 @@
                     <button id="checkAnswerBtn" class="flex-[2] py-4 btn-game text-white text-2xl font-bold rounded-2xl">
                         בדוק תשובה ✅
                     </button>
-                    <button id="skipBtn" class="flex-1 py-4 bg-gray-400 text-white text-xl font-bold rounded-2xl hover:bg-gray-500 shadow-md">
-                        דלג ⏭️
+                    <button id="skipBtn" class="flex-1 py-4 bg-slate-500 text-white text-xl font-bold rounded-2xl hover:bg-slate-600 shadow-md flex items-center justify-center gap-2">
+                         <span>דלג</span>
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                         </svg>
                     </button>
                 </div>
             </div>
@@ -185,11 +187,14 @@
             { id: 'comparison', name: 'השוואה כפלית' }
         ];
 
+        // Characters with gender tracking to ensure grammatical correctness
         const CHARACTERS = [
-            { name: "דני", gender: "m" }, { name: "יניב", gender: "m" },
-            { name: "איתי", gender: "m" }, { name: "רון", gender: "m" },
-            { name: "נועה", gender: "f" }, { name: "מאיה", gender: "f" },
-            { name: "שירה", gender: "f" }, { name: "עדי", gender: "f" }
+            { name: "דני", gender: "m" },
+            { name: "נועה", gender: "f" },
+            { name: "איתי", gender: "m" },
+            { name: "מאיה", gender: "f" },
+            { name: "רון", gender: "m" },
+            { name: "שירה", gender: "f" }
         ];
 
         let gameState = {
@@ -199,7 +204,6 @@
             subject: 'addsub',
             score: 0,
             currentProblem: null,
-            usedProblems: [],
             questionCount: 1
         };
 
@@ -214,118 +218,150 @@
         const scoreLabel = document.getElementById('scoreLabel');
         const statusLabel = document.getElementById('statusLabel');
 
-        function getVerb(base, gender) {
-            const verbs = {
-                "זכה": { m: "זכה", f: "זכתה" },
-                "הבקיע": { m: "הבקיע", f: "הבקיעה" },
-                "קנה": { m: "קנה", f: "קנתה" },
-                "מצא": { m: "מצא", f: "מצאה" },
-                "אסף": { m: "אסף", f: "אספה" },
-                "הלך": { m: "הלך", f: "הלכה" },
-                "רצה": { m: "רצה", f: "רצתה" },
-                "ראה": { m: "ראה", f: "ראתה" },
-                "הביא": { m: "הביא", f: "הביאה" },
-                "גילה": { m: "גילה", f: "גילתה" },
-                "קלע": { m: "קלע", f: "קלעה" },
-                "הכין": { m: "הכין", f: "הכינה" },
-                "נהג": { m: "נהג", f: "נהגה" }
-            };
-            return verbs[base] ? verbs[base][gender] : base;
-        }
-
         function generateProblem() {
             const r = parseInt(gameState.range);
             const comp = parseInt(gameState.complexity);
             const sub = gameState.subject;
             const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-            let q = "", a = 0, hint = "";
             
-            let charIdx1 = rand(0, CHARACTERS.length - 1);
-            let charIdx2 = (charIdx1 + rand(1, CHARACTERS.length - 1)) % CHARACTERS.length;
-            const p1 = CHARACTERS[charIdx1];
-            const p2 = CHARACTERS[charIdx2];
+            let q = "", a = 0, h = "";
+            const char1 = CHARACTERS[rand(0, CHARACTERS.length-1)];
+            const char2 = CHARACTERS.find(c => c.name !== char1.name);
+            
+            const p1 = char1.name;
+            const p2 = char2.name;
+            const g1 = char1.gender;
+            const g2 = char2.gender;
 
-            if (sub === 'comparison') {
-                const factor = rand(2, 5);
-                if (gameState.theme === 'basketball') {
-                    const n1 = rand(2, 8);
-                    q = `${p1.name} ${getVerb("קלע", p1.gender)} ${n1} שלשות במשחק. ${p2.name} ${getVerb("קלע", p2.gender)} פי ${factor} יותר שלשות מ${p1.name}. כמה שלשות ${getVerb("קלע", p2.gender)} ${p2.name}?`;
-                    a = n1 * factor;
-                    hint = `נסו לחשוב: אם ל${p1.name} יש ${n1}, וצריך פי ${factor}, איזו פעולה חשבונית עושים?`;
-                } else if (gameState.theme === 'shopping') {
-                    const price = rand(10, r/factor);
-                    q = `${p1.name} ${getVerb("קנה", p1.gender)} חולצה ב-${price} שקלים. ${p2.name} ${getVerb("קנה", p2.gender)} נעליים שמחירן פי ${factor} מהחולצה. כמה עלו הנעליים של ${p2.name}?`;
-                    a = price * factor;
-                    hint = `המחיר של הנעליים גדול פי ${factor} מ-${price}.`;
-                } else {
-                    const n1 = rand(5, Math.floor(r/factor));
-                    q = `ל${p1.name} יש ${n1} פריטים. ל${p2.name} יש פי ${factor} יותר. כמה יש ל${p2.name}?`;
-                    a = n1 * factor;
-                    hint = `פעולת כפל תעזור כאן!`;
-                }
-            } 
-            else if (sub === 'addsub' || sub === 'mixed') {
-                if (gameState.theme === 'basketball') {
-                    const n1 = rand(15, r/2);
-                    const n2 = rand(5, r/4);
-                    q = `במשחק הדרבי בין מכבי תל אביב להפועל ירושלים, ${p1.name} ${getVerb("קלע", p1.gender)} ${n1} נקודות במחצית הראשונה. בסוף המשחק התברר ש${p1.gender === 'm' ? 'הוא' : 'היא'} ${getVerb("קלע", p1.gender)} בסך הכל ${n1+n2} נקודות. כמה נקודות ${p1.name} ${getVerb("קלע", p1.gender)} במחצית השנייה?`;
-                    a = n2;
-                    hint = `נחסיר את הנקודות של המחצית הראשונה מהסך הכל כדי למצוא את ההפרש.`;
-                } else if (gameState.theme === 'shopping') {
-                    const budget = rand(100, r);
-                    const item1 = rand(20, budget/2);
-                    const item2 = rand(10, budget/4);
-                    q = `ל${p1.name} היו ${budget} שקלים בארנק. ${p1.gender === 'm' ? 'הוא' : 'היא'} ${getVerb("קנה", p1.gender)} כדור ב-${item1} שקלים ומשחק קופסה ב-${item2} שקלים. כמה עודף נשאר ל${p1.name}?`;
-                    a = budget - item1 - item2;
-                    hint = `קודם חשבו כמה כסף ${p1.name} הוציא בסך הכל, ואז החסירו מהסכום ההתחלתי.`;
-                } else if (gameState.theme === 'animals') {
-                    const n1 = rand(10, r/2);
-                    const n2 = rand(5, r/3);
-                    q = `בחוות החיות של ${p1.name} היו ${n1} כבשים. בלילה נולדו עוד ${n2} טלאים קטנים. כמה חיות יש עכשיו בחוות הכבשים?`;
-                    a = n1 + n2;
-                    hint = `זו בעיית חיבור פשוטה. כמה היו ועוד כמה נוספו?`;
-                } else {
-                    const n1 = rand(10, r/2), n2 = rand(1, r/2);
-                    q = `ל${p1.name} היו ${n1} פריטים ו${p2.name} ${getVerb("הביא", p2.gender)} עוד ${n2}. כמה יש עכשיו?`;
-                    a = n1 + n2;
-                    hint = `חברו את שני המספרים.`;
-                }
-            }
-            else if (sub === 'muldiv') {
-                const n1 = rand(3, 10), n2 = rand(2, 9);
-                if (gameState.theme === 'cooking') {
-                    q = `${p1.name} ${getVerb("הכין", p1.gender)} ${n1} תבניות של עוגיות. בכל תבנית יש בדיוק ${n2} עוגיות שוקולד צ'יפס. כמה עוגיות ${p1.name} ${getVerb("הכין", p1.gender)} בסך הכל?`;
-                    a = n1 * n2;
-                    hint = `דמיינו ${n1} שורות של עוגיות, כשבכל שורה יש ${n2}.`;
-                } else if (gameState.theme === 'soccer') {
-                    const total = n1 * n2;
-                    q = `מאמן הכדורגל ${p1.name} הביא לאימון ${total} כדורים. הוא ביקש מ${p2.name} לחלק אותם שווה בשווה בין ${n1} קבוצות. כמה כדורים קיבלה כל קבוצה?`;
-                    a = n2;
-                    hint = `כאן צריך לבצע פעולת חילוק: ${total} לחלק ל-${n1}.`;
-                } else {
-                    q = `ל${p1.name} יש ${n1} שקיות, ובכל שקית ${n2} סוכריות. כמה יש בסך הכל?`;
-                    a = n1 * n2;
-                    hint = `כפל יעזור לכם למצוא את הסך הכל מהר!`;
-                }
-            }
+            const type = (sub === 'mixed') ? (Math.random() > 0.5 ? 'addsub' : 'muldiv') : sub;
 
-            // High Complexity: Multistep
-            if (comp >= 2 && sub !== 'comparison') {
-                const extra = rand(5, 15);
+            // Strict theme logic to prevent cross-theme bugs
+            const themeLogics = {
+                'soccer': {
+                    'addsub': () => {
+                        const n1 = rand(10, r/2), n2 = rand(2, Math.min(n1, 20));
+                        const scenes = [
+                            () => { q = `לקבוצה של ${p1} היו ${n1} נקודות. אחרי הניצחון הם קיבלו עוד ${n2} נקודות. כמה נקודות יש להם עכשיו?`; a = n1 + n2; },
+                            () => { q = `במשחק כדורגל נשארו ${n1} דקות לסיום. השופט הוסיף עוד ${n2} דקות. כמה דקות נותרו בסך הכל?`; a = n1 + n2; },
+                            () => { q = `השוער ${p1} ספג ${n1} שערים. בעונה שעברה הוא ספג ${n2} שערים פחות. כמה שערים ספג בעונה שעברה?`; a = n1 - n2; }
+                        ];
+                        scenes[rand(0, scenes.length-1)]();
+                    },
+                    'muldiv': () => {
+                        const v1 = rand(2, 6), v2 = rand(3, Math.floor(r/v1));
+                        const scenes = [
+                            () => { q = `בליגה של ${p1} יש ${v1} קבוצות. בכל קבוצה יש ${v2} שחקנים. כמה שחקנים יש בליגה?`; a = v1 * v2; },
+                            () => { q = `${p1} הבקיע ${v1 * v2} שערים ב-${v1} משחקים. אם בכל משחק הכמות הייתה שווה, כמה הבקיע בכל פעם?`; a = v2; }
+                        ];
+                        scenes[rand(0, scenes.length-1)]();
+                    },
+                    'comparison': () => {
+                        const f = rand(2, 5), b = rand(2, Math.floor(r/f));
+                        if (Math.random() > 0.5) {
+                            q = `${p1} הבקיע ${b} שערים. ${p2} הבקיע פי ${f} יותר. כמה שערים הבקיע ${p2}?`; a = b * f;
+                        } else {
+                            q = `${p1} הבקיע ${b * f} שערים. זה פי ${f} יותר ממה ש${p2} הבקיע${g2==='f'?'ה':''}. כמה הבקיע${g2==='f'?'ה':''} ${p2}?`; a = b;
+                        }
+                    }
+                },
+                'science': {
+                    'addsub': () => {
+                        const n1 = rand(20, r-20), n2 = rand(5, 15);
+                        const scenes = [
+                            () => { q = `במעבדה של ${p1} היו ${n1} מבחנות. הם קיבלו משלוח של עוד ${n2} מבחנות חדשות. כמה מבחנות יש להם?`; a = n1 + n2; },
+                            () => { q = `בניסוי כימי, הטמפרטורה הייתה ${n1} מעלות. היא ירדה ב-${n2} מעלות. מה הטמפרטורה עכשיו?`; a = n1 - n2; }
+                        ];
+                        scenes[rand(0, scenes.length-1)]();
+                    },
+                    'muldiv': () => {
+                        const v1 = rand(2, 5), v2 = rand(4, Math.floor(r/v1));
+                        const scenes = [
+                            () => { q = `${p1} חוקר${g1==='f'?'ת':''} חיידקים. ב-${v1} צלוחיות יש ${v2} חיידקים בכל אחת. כמה חיידקים יש בסך הכל?`; a = v1 * v2; },
+                            () => { q = `במיקרוסקופ של ${p1} יש ${v1 * v2} תאים. הם מסודרים ב-${v1} שורות שוות. כמה תאים יש בכל שורה?`; a = v2; }
+                        ];
+                        scenes[rand(0, scenes.length-1)]();
+                    },
+                    'comparison': () => {
+                        const f = rand(2, 5), b = rand(2, Math.floor(r/f));
+                        if (Math.random() > 0.5) {
+                            q = `בניסוי של ${p1} היו ${b} כוכבים. בטלסקופ של ${p2} ראו פי ${f} יותר. כמה כוכבים ראה ${p2}?`; a = b * f;
+                        } else {
+                            q = `החללית של ${p1} טסה ${b * f} קילומטרים. זה פי ${f} יותר מהמרחק ש${p2} טס${g2==='f'?'ה':''}. כמה קילומטרים טס${g2==='f'?'ה':''} ${p2}?`; a = b;
+                        }
+                    }
+                },
+                'gaming': {
+                    'addsub': () => {
+                        const hp = rand(50, r-20), change = rand(10, 30);
+                        if (Math.random() > 0.5) {
+                            q = `לדמות של ${p1} היו ${hp} נקודות חיים. היא מצאה לב שהוסיף לה ${change} נקודות. כמה יש לה עכשיו?`; a = hp + change;
+                        } else {
+                            q = `לדמות של ${p1} היו ${hp} נקודות חיים. היא איבדה ${change} נקודות בקרב. כמה נשארו לה?`; a = hp - change;
+                        }
+                    },
+                    'muldiv': () => {
+                        const groups = rand(2, 5), items = rand(5, Math.floor(r/groups));
+                        if (Math.random() > 0.5) {
+                            q = `${p1} עבר${g1==='f'?'ה':''} ${groups} שלבים. בכל שלב הוא קיבל${g1==='f'?'ה':''} ${items} יהלומים. כמה יהלומים יש לו בסך הכל?`; a = groups * items;
+                        } else {
+                            q = `${p1} מצא${g1==='f'?'ה':''} ${groups * items} מטבעות וחילק${g1==='f'?'ה':''} אותם ל-${groups} תיבות. כמה מטבעות בכל תיבה?`; a = items;
+                        }
+                    },
+                    'comparison': () => {
+                        const f = rand(2, 5), b = rand(5, Math.floor(r/f));
+                        if (Math.random() > 0.5) {
+                            q = `${p1} צבר${g1==='f'?'ה':''} ${b} נקודות. ל${p2} יש פי ${f} יותר נקודות. כמה נקודות יש ל${p2}?`; a = b * f;
+                        } else {
+                            q = `הדרקון של ${p1} חזק פי ${f} מהדרקון של ${p2}. אם לדרקון של ${p1} יש ${b * f} כוח, כמה כוח יש לדרקון של ${p2}?`; a = b;
+                        }
+                    }
+                },
+                'cooking': {
+                    'addsub': () => {
+                        const n1 = rand(20, r-20), n2 = rand(5, 15);
+                        if (Math.random() > 0.5) {
+                            q = `${p1} שם${g1==='f'?'ה':''} ${n1} גרם סוכר ועוד ${n2} גרם קמח. מה המשקל הכולל של החומרים?`; a = n1 + n2;
+                        } else {
+                            q = `היו ${n1} עוגיות במטבח. ${p2} אכל${g2==='f'?'ה':''} ${n2} מהן. כמה עוגיות נשארו?`; a = n1 - n2;
+                        }
+                    },
+                    'muldiv': () => {
+                        const v1 = rand(3, 8), v2 = rand(2, Math.floor(r/v1));
+                        if (Math.random() > 0.5) {
+                            q = `${p1} מכין${g1==='f'?'ה':''} ${v1} תבניות. בכל תבנית יש ${v2} עוגות. כמה עוגות יש בסך הכל?`; a = v1 * v2;
+                        } else {
+                            q = `${p1} חתך${g1==='f'?'ה':''} פיצה ל-${v1 * v2} משולשים וחילק${g1==='f'?'ה':''} אותם ל-${v1} ילדים. כמה קיבל כל ילד?`; a = v2;
+                        }
+                    },
+                    'comparison': () => {
+                        const f = rand(2, 4), b = rand(5, Math.floor(r/f));
+                        if (Math.random() > 0.5) {
+                            q = `${p1} הכין${g1==='f'?'ה':''} ${b} סופגניות. ${p2} הכין${g2==='f'?'ה':''} פי ${f} יותר. כמה הכין${g2==='f'?'ה':''} ${p2}?`; a = b * f;
+                        } else {
+                            q = `${p1} קטף${g1==='f'?'ה':''} ${b * f} תפוחים. זה פי ${f} יותר ממה ש${p2} קטף${g2==='f'?'ה':''}. כמה קטף${g2==='f'?'ה':''} ${p2}?`; a = b;
+                        }
+                    }
+                }
+            };
+
+            // Generic fallback if theme doesn't match above
+            const useTheme = themeLogics[gameState.theme] || themeLogics['gaming'];
+            const solve = useTheme[type] || useTheme['addsub'];
+            solve();
+
+            // Complexity additions (Multi-step)
+            if (comp >= 2 && type !== 'comparison') {
+                const step2 = rand(2, 20);
                 if (Math.random() > 0.5) {
-                    q += ` לאחר מכן, הגיע ${CHARACTERS[rand(0,7)].name} ולקח ${extra} מהם. כמה נשארו?`;
-                    a -= extra;
+                    q += ` לאחר מכן הגיע עוד מישהו והוסיף ${step2}. מה התוצאה הסופית?`;
+                    a += step2;
                 } else {
-                    q += ` ואז ${CHARACTERS[rand(0,7)].name} הוסיף עוד ${extra} משלו. מה הסכום עכשיו?`;
-                    a += extra;
+                    q += ` ואז הורידו מהתוצאה ${step2}. מה התוצאה עכשיו?`;
+                    a -= step2;
                 }
-                hint = "שימו לב, יש כאן שני שלבים! קודם פתרו את החלק הראשון ואז את השני.";
             }
 
-            if (gameState.usedProblems.includes(q)) return generateProblem();
-            gameState.usedProblems.push(q);
-            return { q, a, hint };
+            return { q, a, h: "קראו את הסיפור שלב אחרי שלב ובצעו את החישוב." };
         }
 
         function initUI() {
@@ -378,7 +414,7 @@
         }
 
         document.getElementById('hintBtn').onclick = () => {
-            hintBox.innerText = gameState.currentProblem.hint;
+            hintBox.innerText = gameState.currentProblem.h;
             hintBox.classList.remove('hidden');
         };
 
@@ -401,7 +437,7 @@
                 feedback.className = "mt-8 p-4 rounded-2xl text-2xl font-bold bg-green-100 text-green-700 animate-bounce";
                 setTimeout(nextQuestion, 2000);
             } else {
-                feedback.innerHTML = "לא בדיוק... נסו להיעזר ברמז! 💪";
+                feedback.innerHTML = "לא בדיוק... נסו שוב! 💪";
                 feedback.className = "mt-8 p-4 rounded-2xl text-2xl font-bold bg-red-100 text-red-600";
             }
         }
@@ -409,3 +445,4 @@
     </script>
 </body>
 </html>
+
